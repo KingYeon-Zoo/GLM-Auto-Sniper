@@ -1,19 +1,19 @@
 # 🚀 GLM-Auto-Sniper (智谱 GLM 终极自动抢购助手)
 
-🙋蹲队友拼智谱 Coding Plan！
-
-🧩国内顶流编程大模型，20+主流工具全适配，性价比拉满，
-👉立即参与「拼好模」：https://www.bigmodel.cn/glm-coding?ic=ZDLXBIKK8Y
-
-![BigmodelPoster](BigmodelPoster.png) 
-
-虽然也是vibe coding的 但是给自己的拼好模打个广告不过分吧  😛
-
 > 一款基于油猴 (Tampermonkey) 平台的自动化脚本，专注于为智谱大模型平台提供高强度、自动化的安全抢购解决方案。拥有极客风赛博朋克控制面板，真正做到美学与性能兼顾。
 
 ![Version](https://img.shields.io/badge/version-1.0-blue)
 ![Platform](https://img.shields.io/badge/platform-Tampermonkey-green)
 ![Status](https://img.shields.io/badge/status-Active-success)
+
+🙋蹲队友拼智谱 Coding Plan！
+
+🧩国内顶流编程大模型，20+主流工具全适配，性价比拉满，
+👉立即参与「拼好模」：https://www.bigmodel.cn/glm-coding?ic=ZDLXBIKK8Y
+
+<img src="./BigmodelPoster.png" alt="BigmodelPoster" style="max-width: 600px; border-radius: 8px;">
+
+虽然也是vibe coding的 但是给自己的拼好模打个广告不过分吧...
 
 ## ✨ 核心特性 / Features
 
@@ -52,12 +52,12 @@
 
 ---
 
-## 吐槽时刻 💬
+## 吐槽
 
-智谱glm5.1是目前比较好的国产模型 但是高峰时期tpm巨差 算力严重不足 使用体验不是很好
-glm上下文很短很短 而且不是全模态 ！！！ 这个很重要 直接影响了不能理解图片以及前端内容 基本上web开发废了一半
+智谱 GLM-5.1 是目前表现较好的国产模型，但在高峰时期 TPM 得不到保障，算力严重不足，使用体验大打折扣。
+此外，GLM 的上下文长度极其有限，且目前并非全模态！！！这一点非常致命，直接导致它无法理解图片以及复杂的前端结构，可以说在 Web 开发场景下基本废了一半。
  
-glm对claude code的适配依旧不好 很容易出错
+同时，GLM 对 Claude Code 的适配依旧不太成熟，很容易报错。
 
-所以不要看到网上吹 再加上这种耍猴式的抢购就上头 确定好自己的需求订阅 
-网上公益站也多 国产模型其实不值得花大钱 真想coding还是要订阅claude code的
+所以，建议大家不要被网上的过度吹捧所影响，更别因为这种“耍猴式的抢购”就头脑发热。一定要认清自己的真实需求后再做订阅决定。
+目前网上的免费/公益站点也很多，当前的国产大模型其实还不值得花大价钱，如果真想要高效稳定的高强度 Coding 体验，老老实实订阅 Claude 才是正解。
