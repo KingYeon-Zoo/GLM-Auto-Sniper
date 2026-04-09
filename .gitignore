@@ -1,0 +1,14 @@
+# 脚本与系统配置
+.DS_Store
+Thumbs.db
+
+# IDE 配置文件
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 其他临时文件
+*.log
+tmp/
+node_modules/
