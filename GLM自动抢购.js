@@ -38,6 +38,8 @@
     let isRecoveringFromError = false;
     let autoRecoveryAttempts = 0;
     let activeRetryPromise = null;
+    let activeRetryController = null;
+    let activeRetryKey = null;
 
     // ======================== 工具函数 (Utilities) ========================
     const wait = (milliseconds) => new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -103,11 +105,12 @@
     const originalFetch = window.fetch;
 
     async function executeRetryStrategy(targetUrl, requestOptions) {
-        if (activeRetryPromise) {
-            printLog('⏳ 检测到并发请求，并入当前重试队列...');
-            return activeRetryPromise;
-        }
-
+        const requestKey = `${targetUrl}|${requestOptions?.method || 'POST'}|${requestOptions?.body || ''}`;
+        if (activeRetryPromise && activeRetryKey === requestKey) return activeRetryPromise;
+        if (activeRetryController) activeRetryController.abort();
+        const controller = new AbortController();
+        activeRetryController = controller;
+        activeRetryKey = requestKey;
         isStopRequested = false;
 
         activeRetryPromise = (async () => {
@@ -119,7 +122,7 @@
             const { signal, ...cleanRequestOptions } = requestOptions || {};
 
             for (let currentAttempt = 1; currentAttempt <= appConfig.maxRetryAttempts; currentAttempt++) {
-                if (isStopRequested) {
+                if (controller.signal.aborted) {
                     printLog('⏹ 重试已由用户手动停止');
                     break;
                 }
@@ -128,32 +131,33 @@
                 updateStatusUI();
 
                 try {
-                    const response = await originalFetch(targetUrl, { ...cleanRequestOptions, credentials: 'include' });
+                    const response = await originalFetch(targetUrl, { ...cleanRequestOptions, credentials: 'include', signal: controller.signal });
                     const responseText = await response.text();
 
                     let responseData;
                     try { responseData = originalJsonParse(responseText); } catch { responseData = null; }
 
-                    if (responseData && responseData.code === 200 && responseData.data && responseData.data.bizId) {
+                    if (response.ok && responseData && responseData.code === 200 && responseData.data && responseData.data.bizId) {
                         const obtainedBizId = responseData.data.bizId;
                         printLog(`🔑 成功获取 bizId=[${obtainedBizId}]，开始执行双重校验...`);
 
                         // 关键步骤：调用 check 接口验证 bizId 的有效性
                         try {
                             const checkEndpointUrl = `${location.origin}${appConfig.endpoints.check}?bizId=${obtainedBizId}`;
-                            const checkResponse = await originalFetch(checkEndpointUrl, { credentials: 'include' });
+                            const checkResponse = await originalFetch(checkEndpointUrl, { credentials: 'include', signal: controller.signal });
                             const checkText = await checkResponse.text();
 
                             let checkData;
                             try { checkData = originalJsonParse(checkText); } catch { checkData = null; }
 
-                            if (checkData && checkData.data === 'EXPIRE') {
+                            if (!checkResponse.ok || !checkData || checkData.code !== 200 || checkData.data === 'EXPIRE') {
                                 printLog(`⚠️ 尝试 #${currentAttempt} - bizId已过期 (EXPIRE)，继续尝试...`);
                                 await wait(appConfig.retryDelayMs);
                                 continue;
                             }
 
-                            // 校验通过，确认为真正成功
+                            if (controller.signal.aborted) break;
+                            // 只有两次真实请求都成功才接受结果
                             updateAppStatus('success');
                             appState.successfulBizId = obtainedBizId;
                             appState.lastSuccessResponse = { text: responseText, data: responseData };
@@ -173,6 +177,7 @@
 
                     // 记录失败原因
                     const failureReason = !responseData ? '响应格式非JSON'
+                        : responseData.code === 500 ? '服务端内部错误(500)，等待服务恢复'
                         : responseData.code === 555 ? '系统繁忙限制(555)'
                             : (responseData.data && responseData.data.bizId === null) ? '商品已售罄(bizId=null)'
                                 : `未知状态码(code=${responseData.code})`;
@@ -189,7 +194,8 @@
                 await wait(appConfig.retryDelayMs);
             }
 
-            if (!isStopRequested) {
+            if (activeRetryController !== controller) return { isSuccess: false, cancelled: true };
+            if (!controller.signal.aborted) {
                 updateAppStatus('failed');
                 printLog(`❌ 已达到设定的最大重试阈值 (${appConfig.maxRetryAttempts} 次)`);
             } else {
@@ -197,13 +203,17 @@
             }
 
             updateStatusUI();
-            return { isSuccess: false };
+            return { isSuccess: false, cancelled: controller.signal.aborted };
         })();
 
         try {
             return await activeRetryPromise;
         } finally {
-            activeRetryPromise = null;
+            if (activeRetryController === controller) {
+                activeRetryPromise = null;
+                activeRetryController = null;
+                activeRetryKey = null;
+            }
         }
     }
 
@@ -375,6 +385,7 @@
                     headers: { 'Content-Type': 'application/json' },
                 });
             }
+            if (executionResult.cancelled) throw new DOMException('操作已中止', 'AbortError');
             return originalFetch.apply(this, [requestInput, requestInit]);
         }
 
@@ -470,6 +481,13 @@
 
     function requestStopOperation() {
         isStopRequested = true;
+        if (activeRetryController) activeRetryController.abort();
+        activeRetryPromise = null;
+        activeRetryController = null;
+        activeRetryKey = null;
+        appState.cachedResponse = null;
+        appState.lastSuccessResponse = null;
+        appState.successfulBizId = null;
         updateAppStatus('idle');
         appState.retryCount = 0;
         printLog('⏹ 已收到操作中止指令');
