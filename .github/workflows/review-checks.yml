@@ -22,3 +22,6 @@ jobs:
       - name: 执行检查
         run: |
           node --check GLM自动抢购.js
+
+      - name: 中止恢复与错误响应回归
+        run: node --test tests/retry.test.cjs
